@@ -74,7 +74,7 @@
   }
   .dept-btn:hover { border-color:var(--border-hover); color:var(--fg); }
   .dept-btn.active { border-color:var(--cyan); color:var(--fg); background:#1a2a33; }
-  .preview-area { display:flex; align-items:center; justify-content:center; padding:40px; background:#555555; }
+  .preview-area { display:flex; align-items:flex-start; justify-content:center; padding-top:5%; padding-left:40px; padding-right:40px; padding-bottom:40px; background:#555555; }
   .canvas-wrap { box-shadow:0 24px 80px rgba(0,0,0,0.6); border-radius:2px; }
   #nametag-canvas { display:block; }
   .panel::-webkit-scrollbar { width:4px; }
@@ -125,7 +125,7 @@
         </div>
         <div class="field">
           <label>한글 닉네임</label>
-          <input type="text" id="kr-nickname" placeholder="닉넴" maxlength="8">
+          <input type="text" id="kr-nickname" placeholder="닉네임" maxlength="8">
         </div>
         <div class="field">
           <label>영문 Nickname</label>
@@ -177,7 +177,7 @@
       <input type="text" class="filename-input" id="filename-input" value="nametag" placeholder="파일명">
       <button class="btn-export" onclick="exportImage()">PNG로 저장</button>
       <button class="btn-export btn-bleed" onclick="exportBleed()" style="background:#1a1a1a;border:0.5px solid rgba(255,255,255,0.2);margin-top:0;">재단용 PDF 저장</button>
-      <div class="export-meta">935 × 1540 px · 인쇄용 고해상도</div>
+      <div class="export-meta">900 × 1482 px · 인쇄용 고해상도</div>
     </div>
 
   </aside>
@@ -197,9 +197,9 @@ const DEPTS = [
   { key:'Design',   label:'Design',  accent:'#afed43', grad:['#6b0061','#440040','#200020'], bg:'NameTag_BG_Design_v2.png',   deptColor:'#afed43', nickGrad:['#14b517','#97d13c'] },
   { key:'Dev',      label:'Dev',     accent:'#00a6fa', grad:['#2e0080','#1a0055','#0a0030'], bg:'NameTag_BG_Dev_v2.png',      deptColor:'#00a6fa', nickGrad:['#006bb5','#00a6fa'] },
   { key:'Art',      label:'Art',     accent:'#ff8dc4', grad:['#7a2a00','#551a00','#2a0a00'], bg:'NameTag_BG_Art_v2.png',      deptColor:'#ff8dc4', nickGrad:['#e60771','#f5a74b'] },
-  { key:'Marketer', label:'PM',  accent:'#ff7e1d', grad:['#006644','#003d28','#001a10'], bg:'NameTag_BG_Marketer_v2.png', deptColor:'#ff7e1d', nickGrad:['#f49a00','#fbc300'] },
+  { key:'Marketer', label:'Growth',  accent:'#ff7e1d', grad:['#006644','#003d28','#001a10'], bg:'NameTag_BG_Marketer_v2.png', deptColor:'#ff7e1d', nickGrad:['#f49a00','#fbc300'] },
   { key:'Corp',     label:'Corp',    accent:'#974bef', grad:['#6b5500','#443500','#221a00'], bg:'NameTag_BG_Corp_v2.png',     deptColor:'#974bef', nickGrad:['#5537b0','#7931b3'] },
-  { key:'HR',       label:'HR',      accent:'#ffe800', grad:['#7a0020','#550015','#2a000a'], bg:'NameTag_BG_HR_v2.png',       deptColor:'#ffe800', nickGrad:['#ff6700','#fabf00'] },
+  { key:'HR',       label:'HR',      accent:'#ffe800', grad:['#7a0020','#550015','#2a000a'], bg:'NameTag_BG_HR_v3.png',       deptColor:'#ffe800', nickGrad:['#ff6700','#fabf00'] },
   { key:'Ai',       label:'AI',      accent:'#57e7ff', grad:['#003d55','#002233','#001018'], bg:'NameTag_BG_Ai_v2.png',       deptColor:'#57e7ff', nickGrad:['#3992db','#57e7ff'] },
   { key:'Academy',  label:'Academy', accent:'#004c1f', grad:['#3d5500','#263500','#101a00'], bg:'NameTag_BG_Academy_v2.png',  deptColor:'#004c1f', nickGrad:['#fff000','#fff945'] },
 ];
@@ -218,7 +218,7 @@ function loadBgImage(filename) {
   });
 }
 
-const W = 935, H = 1540;
+const W = 900, H = 1482;
 const canvas = document.getElementById('nametag-canvas');
 const ctx = canvas.getContext('2d');
 canvas.width = W; canvas.height = H;
@@ -228,7 +228,8 @@ let state = {
   customDept: '',
   bgImg: null,
   fontsReady: false,
-  realName: '홍길동', krNick: '닉넴', enNick: 'Nickname',
+  pdfNickOffset: 0, // PDF용 닉네임 Y 오프셋
+  realName: '홍길동', krNick: '닉네임', enNick: 'Nickname',
   photo: null, photoScale: 1, photoOx: 0, photoOy: 0,
   nickFont: 'Pretendard',
 };
@@ -341,7 +342,7 @@ function roundRect(c, x, y, w, h, r) {
   c.lineTo(x, y+r); c.quadraticCurveTo(x, y, x+r, y); c.closePath();
 }
 
-function drawCanvas() {
+function drawCanvas(noText = false) {
   const d = state.dept;
   ctx.clearRect(0, 0, W, H);
 
@@ -364,18 +365,18 @@ function drawCanvas() {
   ctx.font = `400 70px Pretendard, sans-serif`; ctx.textBaseline = 'top';
   const tw = ctx.measureText(deptLabel).width - 2 * (deptLabel.length - 1); // letterSpacing 보정
   const tpx = 28, tpy = 18, tagW = tw + tpx, tagH = 70 + tpy*2;
-  const tagX = 80 + 775 - tw - tpx, tagY = 75; // 프레임 우측 끝, 좌측패딩 포함
+  const tagX = 80 + 740 - tw - tpx, tagY = 68; // 프레임 우측 끝, 좌측패딩 포함
 
   // ── 사진 프레임 ──
-  const fx = 80, fy = 120, fw = 775, fh = 870;
+  const fx = 80, fy = 124, fw = 740, fh = 840;
 
   // 상단 파임 (직군 태그)
   const cutX = tagX - fx;
   const cutH = (tagY + tagH) - fy;
 
   // 닉네임 폰트 사이즈 & Y 위치 먼저 확정
-  const nickFontSize = 185;
-  const nickY = Math.round(H * 0.655) - 5;
+  const nickFontSize = 174;
+  const nickY = Math.round(H * 0.655) - 7 - state.pdfNickOffset;
 
   // 닉네임 너비 측정
   let nickCutW = 0;
@@ -424,6 +425,7 @@ function drawCanvas() {
     ctx.restore();
   }
 
+  if (!noText) { // ── 벡터 텍스트 레이어 (직군/실명/영문닉네임) ──
   // ── 직군 태그 (프레임 파인 자리에 딱 맞게) ──
   ctx.font = `400 70px Pretendard, sans-serif`; ctx.textBaseline = 'top';
   // 컬러 박스 없이 텍스트만
@@ -434,25 +436,32 @@ function drawCanvas() {
     ctx.letterSpacing = '0px';
   }
 
-  // ── 실명 (검정 박스 배경) ──
+  // 영문 닉네임 (noText 블록 안)
+  if (state.enNick) {
+    ctx.font = `300 60px Pretendard, sans-serif`;
+    ctx.fillStyle = '#ffffff'; ctx.textBaseline = 'top';
+    ctx.fillText(state.enNick, fx + 2, Math.round(H * 0.78) - 7);
+  }
+
+  } // 벡터 텍스트 레이어 끝 (직군/실명/영문닉네임)
+
+  // ── 실명 (검정 박스 배경) — 항상 래스터 ──
   if (state.realName) {
-    const nameFontSize = 38;
-    ctx.font = `400 ${nameFontSize}px Pretendard, sans-serif`;
+    const nameFontSize = 34;
+    ctx.font = `300 ${nameFontSize}px Pretendard, sans-serif`;
     ctx.textBaseline = 'bottom';
     const nameW = ctx.measureText(state.realName).width;
     const namePadX = 18, namePadY = 12;
     const nameBoxX = fx;
     const nameBoxH = nameFontSize + namePadY * 2;
     const nameBoxY = fy + fh - nickCutH - nameBoxH;
-    // 검정 박스
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
     ctx.fillRect(nameBoxX, nameBoxY, nameW + namePadX * 2, nameBoxH);
-    // 텍스트
     ctx.fillStyle = '#ffffff';
     ctx.fillText(state.realName, nameBoxX + namePadX, nameBoxY + nameBoxH - namePadY);
   }
 
-  // 한글 닉네임 — 그라디언트
+  // 한글 닉네임 — 그라디언트 (항상 래스터)
   if (state.krNick) {
     ctx.font = `800 ${nickFontSize}px ${state.nickFont}, Pretendard, sans-serif`;
     ctx.textBaseline = 'top';
@@ -464,12 +473,7 @@ function drawCanvas() {
     ctx.fillText(state.krNick, fx - 6, nickY);
   }
 
-  // 영문 닉네임
-  if (state.enNick) {
-    ctx.font = `400 60px Pretendard, sans-serif`;
-    ctx.fillStyle = 'rgba(255,255,255,0.72)'; ctx.textBaseline = 'top';
-    ctx.fillText(state.enNick, fx + 2, Math.round(H * 0.78));
-  }
+
 
   // 로고
   if (logoImg) {
@@ -481,7 +485,7 @@ function drawCanvas() {
 // ── 미리보기 스케일 ──
 function fitPreview() {
   const area = document.querySelector('.preview-area');
-  const s = Math.min((area.clientWidth - 80) / W, (area.clientHeight - 80) / H, 0.5);
+  const s = Math.min((area.clientWidth - 80) / W, (area.clientHeight - 80) / H, 0.4);
   canvas.style.width = Math.floor(W * s) + 'px';
   canvas.style.height = Math.floor(H * s) + 'px';
 }
@@ -511,7 +515,7 @@ async function exportBleed() {
     const SC = 96 / 25.4 * 2;
     const mm = v => Math.round(v * SC);
 
-    const NT_W = 127, NT_H = 209;
+    const NT_W = 136, NT_H = 224;
     const BLEED = 3, MARGIN = 5, MARK_LEN = 3, MARK_GAP = 1;
     const BW = NT_W + BLEED * 2;
     const BH = NT_H + BLEED * 2;
@@ -578,38 +582,145 @@ async function exportBleed() {
 
     // PDF
     const { jsPDF } = window.jspdf;
-    const imgData = oc.toDataURL('image/png');
+
     const imgW = MARGIN + BW + (BW - BLEED) + MARGIN;
     const imgH = MARGIN + BH + MARGIN;
     const offsetX = (420 - imgW) / 2;
     const offsetY = (297 - imgH) / 2;
 
     const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a3' });
+
+    // ── 폰트 fetch & embed ──
+    const BASE = 'https://cdn.jsdelivr.net/gh/mato481/supercent-nametag-generator@main/';
+    async function fetchB64(url) {
+      const res = await fetch(url);
+      const buf = await res.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      let bin = '';
+      for (let i = 0; i < bytes.length; i += 8192)
+        bin += String.fromCharCode(...bytes.subarray(i, i + 8192));
+      return btoa(bin);
+    }
+
+    btn.textContent = '폰트 로딩 중...';
+    const [regB64, lightB64, paperB64] = await Promise.all([
+      fetchB64(BASE + 'Pretendard-Regular.ttf'),
+      fetchB64(BASE + 'Pretendard-Light.ttf'),
+      fetchB64(BASE + 'Paperlogy-8ExtraBold.ttf'),
+    ]);
+    btn.textContent = '생성 중...';
+
+    pdf.addFileToVFS('Pretendard-Regular.ttf', regB64);
+    pdf.addFont('Pretendard-Regular.ttf', 'Pretendard-Regular', 'normal');
+    pdf.addFileToVFS('Pretendard-Light.ttf', lightB64);
+    pdf.addFont('Pretendard-Light.ttf', 'Pretendard-Light', 'normal');
+    pdf.addFileToVFS('Paperlogy-8ExtraBold.ttf', paperB64);
+    pdf.addFont('Paperlogy-8ExtraBold.ttf', 'Paperlogy', 'normal');
+
+    // ── 배경 이미지 (텍스트 제외 래스터) ──
+    // 텍스트 없는 버전으로 캔버스 재렌더
+    state.pdfNickOffset = 5; // PDF 닉네임 5px 위로
+    drawCanvas(true); // noText 모드
+    await new Promise(r => setTimeout(r, 100));
+
+    // oc (블리드 캔버스) 다시 그리기 - noText 버전
+    const ocNoText = document.createElement('canvas');
+    ocNoText.width = totalW; ocNoText.height = totalH;
+    const gnt = ocNoText.getContext('2d');
+    gnt.fillStyle = '#ffffff';
+    gnt.fillRect(0, 0, totalW, totalH);
+    drawNT(x1, y0, true);
+    drawNT(x2, y0, false);
+
+    // drawNT는 oc 컨텍스트 g를 직접 참조하므로 임시로 g를 교체
+    // 대신 현재 canvas(noText)를 직접 사용
+    const ocNoTextG = ocNoText.getContext('2d');
+    ocNoTextG.fillStyle = '#ffffff';
+    ocNoTextG.fillRect(0, 0, totalW, totalH);
+
+    function drawNTOnCtx(ctx2, ox, oy, hasLeftBleed) {
+      const drawX = hasLeftBleed ? ox + blPx : ox - blPx;
+      ctx2.drawImage(canvas, drawX, oy + blPx, ntW, ntH);
+      ctx2.drawImage(canvas, 0, 0, canvas.width, 1, drawX, oy, ntW, blPx);
+      ctx2.drawImage(canvas, 0, canvas.height-1, canvas.width, 1, drawX, oy + blPx + ntH, ntW, blPx);
+      ctx2.drawImage(canvas, canvas.width-1, 0, 1, canvas.height, drawX + ntW, oy + blPx, blPx, ntH);
+      ctx2.drawImage(canvas, canvas.width-1, 0, 1, 1, drawX + ntW, oy, blPx, blPx);
+      ctx2.drawImage(canvas, canvas.width-1, canvas.height-1, 1, 1, drawX + ntW, oy + blPx + ntH, blPx, blPx);
+      if (hasLeftBleed) {
+        ctx2.drawImage(canvas, 0, 0, 1, canvas.height, ox, oy + blPx, blPx, ntH);
+        ctx2.drawImage(canvas, 0, 0, 1, 1, ox, oy, blPx, blPx);
+        ctx2.drawImage(canvas, 0, canvas.height-1, 1, 1, ox, oy + blPx + ntH, blPx, blPx);
+      }
+    }
+
+    drawNTOnCtx(ocNoTextG, x1, y0, true);
+    drawNTOnCtx(ocNoTextG, x2, y0, false);
+
+    const imgData = ocNoText.toDataURL('image/png');
     pdf.addImage(imgData, 'PNG', offsetX, offsetY, imgW, imgH, undefined, 'NONE');
 
-    // 재단선 — PDF에서 직접 페이지 끝까지
+    // 캔버스 원상복구
+    drawCanvas(false);
+
+    // ── 재단선 ──
     pdf.setDrawColor(0, 0, 0);
     pdf.setLineWidth(0.1);
-
     const lxMM = offsetX + MARGIN + BLEED;
     const rxMM = offsetX + MARGIN + BW + (BW - BLEED) - BLEED - 3;
     const tyMM = offsetY + MARGIN + BLEED;
     const byMM = offsetY + MARGIN + BLEED + NT_H;
     const gMM  = MARK_GAP;
+    pdf.line(lxMM, 0,          lxMM, tyMM - gMM); pdf.line(lxMM, byMM + gMM, lxMM, 297);
+    pdf.line(rxMM, 0,          rxMM, tyMM - gMM); pdf.line(rxMM, byMM + gMM, rxMM, 297);
+    pdf.line(0, tyMM, lxMM - gMM, tyMM); pdf.line(rxMM + gMM, tyMM, 420, tyMM);
+    pdf.line(0, byMM, lxMM - gMM, byMM); pdf.line(rxMM + gMM, byMM, 420, byMM);
 
-    // 세로선 (페이지 상하 끝까지, gap 구간만 비움)
-    pdf.line(lxMM, 0,          lxMM, tyMM - gMM);
-    pdf.line(lxMM, byMM + gMM, lxMM, 297);
-    pdf.line(rxMM, 0,          rxMM, tyMM - gMM);
-    pdf.line(rxMM, byMM + gMM, rxMM, 297);
+    // ── 텍스트 벡터 레이어 ──
+    // 캔버스 px → PDF mm 변환
+    const pxToMm = NT_W / canvas.width;
+    const nt1X = offsetX + MARGIN + BLEED;  // 왼쪽 장
+    const nt2X = nt1X + NT_W;               // 오른쪽 장
+    const ntY0 = offsetY + MARGIN + BLEED;
 
-    // 가로선 (페이지 좌우 끝까지, gap 구간만 비움)
-    pdf.line(0,          tyMM, lxMM - gMM, tyMM);
-    pdf.line(rxMM + gMM, tyMM, 420,        tyMM);
-    pdf.line(0,          byMM, lxMM - gMM, byMM);
-    pdf.line(rxMM + gMM, byMM, 420,        byMM);
+    const p2m = px => px * pxToMm;
+    const hex2rgb = h => [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)];
+
+    // PDF mm 좌표 변환 (캔버스 px → NT_W mm 기준)
+    // 텍스트 baseline: jsPDF는 기본 alphabetic (글자 하단 기준)
+    const pt = v => p2m(v) * 2.8346; // px → pt (1mm = 2.8346pt)
+
+    [nt1X, nt2X].forEach(ntX => {
+      const d = state.dept;
+      const deptLabel = state.customDept || d.label;
+
+      // 직무 (Regular) — 우측 정렬, 상단 기준
+      if (deptLabel) {
+        pdf.setFont('Pretendard-Regular', 'normal');
+        pdf.setFontSize(pt(70));
+        pdf.setTextColor(...hex2rgb(d.deptColor));
+        // tagY=75, tpy=18, 텍스트 baseline = tagY + tpy + fontSize
+        const deptY = ntY0 + p2m(68 + 18 + 70 - 5);
+        // 캔버스에서 텍스트 우측 끝 = fx + fw = 80 + 740 = 820px
+        const deptX = ntX + p2m(820);
+        pdf.text(deptLabel, deptX, deptY, { align: 'right' });
+      }
+
+
+
+      // 영문 닉네임 (Light)
+      if (state.enNick) {
+        pdf.setFont('Pretendard-Light', 'normal');
+        pdf.setFontSize(pt(60));
+        pdf.setTextColor(255, 255, 255);
+        const enY = ntY0 + p2m(Math.round(1482 * 0.78) + 43);
+        pdf.text(state.enNick, ntX + p2m(80 + 2), enY);
+      }
+
+
+    });
 
     pdf.save(name + '_bleed.pdf');
+    state.pdfNickOffset = 0; drawCanvas();
 
   } catch(err) {
     console.error('PDF 생성 오류:', err);
